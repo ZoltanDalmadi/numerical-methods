@@ -118,7 +118,6 @@ int main() {
       }
 
       /* sorcsere legnagyobb aszolutertekure */
-
       if (fabs(max) < 1e-15) {
         printf("szingularis\n");
         singular = 1;
@@ -139,13 +138,16 @@ int main() {
       }
     }
 
+    if (singular) {
+      destroyVector(P);
+      destroyVector(b);
+      destroyMatrix(A);
+      continue;
+    }
+
     /* szingularitas ellenorzes */
     if (fabs(A->_data[n - 1][n - 1]) < 1e-15) {
       printf("szingularis\n");
-      singular = 1;
-    }
-
-    if (singular) {
       destroyVector(P);
       destroyVector(b);
       destroyMatrix(A);
@@ -159,7 +161,6 @@ int main() {
       nb->_data[i] = b->_data[(int)P->_data[i]];
 
     /* Ly = b megoldasa */
-
     double temp;
 
     for (i = 0; i < n; ++i) {
@@ -173,7 +174,6 @@ int main() {
     }
 
     /* Ux = y megoldasa */
-
     for (i = n - 1; i >= 0; i--) {
       temp = 0;
 
