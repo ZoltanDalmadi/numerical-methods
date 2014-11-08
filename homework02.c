@@ -97,14 +97,9 @@ VECTOR *multiplyMatrixVector(MATRIX *A, VECTOR *B)
 
   int i, j;
 
-  for (i = 0; i < result->_items; ++i)
-  {
-    result->_data[i] = 0;
-  }
-
   for (i = 0; i < A->_rows; ++i)
   {
-    /* result->_data[i] = 0; */
+    result->_data[i] = 0;
 
     for (j = 0; j < A->_cols; ++j)
       result->_data[i] += A->_data[i][j] * B->_data[j];
