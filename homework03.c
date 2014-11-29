@@ -4,7 +4,7 @@
 
 /* ----------------------------------------------------------------------------
  * MATRIX struct and functions
- * --------------------------------------------------------------------------*/
+ * ------------------------------------------------------------------------- */
 typedef struct Matrix
 {
   int _rows;
@@ -60,9 +60,31 @@ MATRIX *copyMatrix(MATRIX *m)
   return copy;
 }
 
+void printMatrix(MATRIX *m)
+{
+  int i, j;
+
+  for (i = 0; i < m->_rows; ++i)
+  {
+    printf("|");
+
+    for (j = 0; j < m->_cols; ++j)
+    {
+      printf("%lf", m->_data[i][j]);
+
+      if (j == m->_cols - 1)
+        printf("|\n");
+      else
+        printf(" ");
+    }
+  }
+
+  printf("\n");
+}
+
 /* ----------------------------------------------------------------------------
  * VECTOR struct and functions
- * --------------------------------------------------------------------------*/
+ * ------------------------------------------------------------------------- */
 typedef struct Vector
 {
   int _items;
@@ -145,13 +167,15 @@ double infiniteNorm(VECTOR *v)
 
 /* ----------------------------------------------------------------------------
  * SYSTEM struct and functions
- * --------------------------------------------------------------------------*/
+ * ------------------------------------------------------------------------- */
 typedef double(*equation_ptr)(VECTOR *);
+typedef MATRIX *(*jacobifunc_ptr)(VECTOR *);
 
 typedef struct System
 {
   int _items;
   equation_ptr *_data;
+  jacobifunc_ptr _jacobi;
 } SYSTEM;
 
 SYSTEM *createSystem(int items)
@@ -159,32 +183,37 @@ SYSTEM *createSystem(int items)
   SYSTEM *s = (SYSTEM *)malloc(sizeof(SYSTEM));
   s->_items = items;
   s->_data = (equation_ptr *)malloc(items * sizeof(equation_ptr));
+
   return s;
 }
 
 void destroySystem(SYSTEM *s)
 {
   free(s->_data);
+  s->_data = NULL;
   free(s);
   s = NULL;
 }
 
 /* ----------------------------------------------------------------------------
  * Utility functions
- * --------------------------------------------------------------------------*/
+ * ------------------------------------------------------------------------- */
 double min(double a, double b)
 {
   return a < b ? a : b;
 }
 
-double func1(VECTOR *v)
+/* ----------------------------------------------------------------------------
+ * Equation system #1
+ * ------------------------------------------------------------------------- */
+double sys1_func1(VECTOR *v)
 {
   double x1 = v->_data[0];
   double x3 = v->_data[2];
   return -(x1 * x1) + x3 + 3;
 }
 
-double func2(VECTOR *v)
+double sys1_func2(VECTOR *v)
 {
   double x1 = v->_data[0];
   double x2 = v->_data[1];
@@ -192,13 +221,133 @@ double func2(VECTOR *v)
   return -x1 + (2 * x2 * x2) - (x3 * x3) - 3;
 }
 
-double func3(VECTOR *v)
+double sys1_func3(VECTOR *v)
 {
   double x2 = v->_data[1];
   double x3 = v->_data[2];
   return x2 - (3 * x3 * x3) + 2;
 }
 
+MATRIX *sys1_jacobi(VECTOR *v)
+{
+  MATRIX *result = createMatrix(v->_items, v->_items);
+
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  double x3 = v->_data[2];
+
+  result->_data[0][0] = -2 * x1;
+  result->_data[0][1] = 0;
+  result->_data[0][2] = 1;
+  result->_data[1][0] = -1;
+  result->_data[1][1] = 4 * x2;
+  result->_data[1][2] = -2 * x3;
+  result->_data[2][0] = 0;
+  result->_data[2][1] = 1;
+  result->_data[2][2] = -6 * x3;
+
+  return result;
+}
+
+/* ----------------------------------------------------------------------------
+ * Equation system #2
+ * ------------------------------------------------------------------------- */
+double sys2_func1(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return (2 * x1 * x1) - x2 - 1;
+}
+
+double sys2_func2(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return -x1 + (2 * x2 * x2) - 1;
+}
+
+MATRIX *sys2_jacobi(VECTOR *v)
+{
+  MATRIX *result = createMatrix(v->_items, v->_items);
+
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+
+  result->_data[0][0] = 4 * x1;
+  result->_data[0][1] = -1;
+  result->_data[1][0] = -1;
+  result->_data[1][1] = 4 * x2;
+
+  return result;
+}
+
+/* ----------------------------------------------------------------------------
+ * Equation system #3
+ * ------------------------------------------------------------------------- */
+double sys3_func1(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return -4 * x1 + cos(2 * x1 - x2) - 3;
+}
+
+double sys3_func2(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return sin(x1) - 3 * x2 - 2;
+}
+
+MATRIX *sys3_jacobi(VECTOR *v)
+{
+  MATRIX *result = createMatrix(v->_items, v->_items);
+
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+
+  result->_data[0][0] = -4 - sin(x1 - x2) * 2;
+  result->_data[0][1] = sin(2 * x1 - x2);
+  result->_data[1][0] = cos(x1);
+  result->_data[1][1] = -3;
+
+  return result;
+}
+
+/* ----------------------------------------------------------------------------
+ * Equation system #4
+ * ------------------------------------------------------------------------- */
+double sys4_func1(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return (x1 * x2 * x2) - (4 * x1 * x2) + (4 * x1) - 1;
+}
+
+double sys4_func2(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  return exp(x1 - 1) - x2 + 1;
+}
+
+MATRIX *sys4_jacobi(VECTOR *v)
+{
+  MATRIX *result = createMatrix(v->_items, v->_items);
+
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+
+  result->_data[0][0] = (x2 * x2) - 4 * (x2 + 1);
+  result->_data[0][1] = 2 * x1 * (x2 - 2);
+  result->_data[1][0] = exp(x1 - 1);
+  result->_data[1][1] = -1;
+
+  return result;
+}
+
+/* ----------------------------------------------------------------------------
+ * Equation systems miscellaneous
+ * ------------------------------------------------------------------------- */
 VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 {
   VECTOR *result = createVector(v->_items);
@@ -213,24 +362,71 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 
 int main()
 {
-  int i;
+  int i, n;
+  SYSTEM *activeSystem;
+
+  /* construct equation systems */
   SYSTEM *system1 = createSystem(3);
-  system1->_data[0] = func1;
-  system1->_data[1] = func2;
-  system1->_data[2] = func3;
+  system1->_data[0] = sys1_func1;
+  system1->_data[1] = sys1_func2;
+  system1->_data[2] = sys1_func3;
+  system1->_jacobi = sys1_jacobi;
 
-  VECTOR *vec = createVector(3);
+  SYSTEM *system2 = createSystem(2);
+  system2->_data[0] = sys2_func1;
+  system2->_data[1] = sys2_func2;
+  system2->_jacobi = sys2_jacobi;
 
-  for (i = 0; i < 3; ++i)
+  SYSTEM *system3 = createSystem(2);
+  system3->_data[0] = sys3_func1;
+  system3->_data[1] = sys3_func2;
+  system3->_jacobi = sys3_jacobi;
+
+  SYSTEM *system4 = createSystem(2);
+  system4->_data[0] = sys4_func1;
+  system4->_data[1] = sys4_func2;
+  system4->_jacobi = sys4_jacobi;
+
+  scanf("%d", &n);
+
+  switch (n)
+  {
+  case 1:
+    activeSystem = system1;
+    break;
+
+  case 2:
+    activeSystem = system2;
+    break;
+
+  case 3:
+    activeSystem = system3;
+    break;
+
+  case 4:
+    activeSystem = system4;
+    break;
+  }
+
+  VECTOR *vec = createVector(activeSystem->_items);
+
+  for (i = 0; i < activeSystem->_items; ++i)
     scanf("%lf", &vec->_data[i]);
 
-  VECTOR *res = calcSystem(system1, vec);
+  VECTOR *res = calcSystem(activeSystem, vec);
+  MATRIX *resm = activeSystem->_jacobi(vec);
 
   printVector(res);
   printf("\n");
+  printMatrix(resm);
 
+  /* cleanup */
+  destroyMatrix(resm);
   destroyVector(res);
   destroyVector(vec);
+  destroySystem(system4);
+  destroySystem(system3);
+  destroySystem(system2);
   destroySystem(system1);
 
   return 0;
