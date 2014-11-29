@@ -146,7 +146,7 @@ double infiniteNorm(VECTOR *v)
 /* ----------------------------------------------------------------------------
  * SYSTEM struct and functions
  * --------------------------------------------------------------------------*/
-typedef VECTOR *(*equation_ptr)(VECTOR *);
+typedef double(*equation_ptr)(VECTOR *);
 
 typedef struct System
 {
@@ -177,39 +177,61 @@ double min(double a, double b)
   return a < b ? a : b;
 }
 
-VECTOR *func1(VECTOR *v)
+double func1(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x3 = v->_data[2];
+  return -(x1 * x1) + x3 + 3;
+}
+
+double func2(VECTOR *v)
+{
+  double x1 = v->_data[0];
+  double x2 = v->_data[1];
+  double x3 = v->_data[2];
+  return -x1 + (2 * x2 * x2) - (x3 * x3) - 3;
+}
+
+double func3(VECTOR *v)
+{
+  double x2 = v->_data[1];
+  double x3 = v->_data[2];
+  return x2 - (3 * x3 * x3) + 2;
+}
+
+VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 {
   VECTOR *result = createVector(v->_items);
 
   int i;
 
   for (i = 0; i < result->_items; ++i)
-  {
-
-  }
-
-  return result;
-}
-
-VECTOR *func2(VECTOR *v)
-{
-  VECTOR *result = createVector(v->_items);
-
-  return result;
-}
-
-VECTOR *func3(VECTOR *v)
-{
-  VECTOR *result = createVector(v->_items);
+    result->_data[i] = s->_data[i](v);
 
   return result;
 }
 
 int main()
 {
+  int i;
   SYSTEM *system1 = createSystem(3);
   system1->_data[0] = func1;
   system1->_data[1] = func2;
   system1->_data[2] = func3;
+
+  VECTOR *vec = createVector(3);
+
+  for (i = 0; i < 3; ++i)
+    scanf("%lf", &vec->_data[i]);
+
+  VECTOR *res = calcSystem(system1, vec);
+
+  printVector(res);
+  printf("\n");
+
+  destroyVector(res);
+  destroyVector(vec);
+  destroySystem(system1);
+
   return 0;
 }
