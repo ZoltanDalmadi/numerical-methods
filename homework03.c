@@ -378,7 +378,7 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 int main()
 {
   /* variables */
-  int i, j, n, N, k, iter, task, maxit;
+  int i, j, ttry, n, N, k, iter, task, ttoosmall, maxit;
   double epsilon, t, temp;
   SYSTEM *activeSystem;
 
@@ -437,12 +437,21 @@ int main()
     scanf("%lf", &epsilon);
 
     /* input starting vector x0 */
-    VECTOR *xk = createVector(activeSystem->_items);
+    VECTOR *x0 = createVector(activeSystem->_items);
 
-    for (i = 0; i < xk->_items; ++i)
-      scanf("%lf", &xk->_data[i]);
+    for (i = 0; i < x0->_items; ++i)
+      scanf("%lf", &x0->_data[i]);
+
+    VECTOR *fx0 = calcSystem(activeSystem, x0);
+
+    VECTOR *xk = copyVector(x0);
+
+    t = 1.0;
 
     /* start iter loop */
+    VECTOR *y = createVector(activeSystem->_items);
+    VECTOR *fy;
+
     for (iter = 1; iter < maxit; ++iter)
     {
       /* 1. calculate jacobi matrix and f vector --------------------------- */
@@ -562,15 +571,83 @@ int main()
       destroyMatrix(jacobixk);
 
       /* 3. y vektor szamitasa --------------------------------------------- */
+      for (ttry = 0; ttry < 8; ++ttry)
+      {
+        /* y = xk + t * deltax */
+        for (i = 0; i < y->_items; ++i)
+          y->_data[i] = xk->_data[i] + t * deltax->_data[i];
 
+        fy = calcSystem(activeSystem, y);
+
+        if (infiniteNorm(fy) < infiniteNorm(fxk))
+        {
+          destroyVector(xk);
+          xk = y;
+
+          if (ttry == 0)
+          {
+            t = min(1.5 * t, 1.0);
+            destroyVector(fy);
+            continue;
+          }
+
+          destroyVector(fy);
+          break;
+        }
+        else
+        {
+          t /= 2;
+
+          if (t <= 1e-3)
+          {
+            ttoosmall = 1;
+            destroyVector(fy);
+            break;
+          }
+        }
+      } /* end loop ttry */
+
+      if (ttry == 8 || ttoosmall)
+      {
+        printf("sikertelen ");
+        printVector(y);
+      }
 
       /* cleanup */
       destroyVector(fxk);
 
     } /* end iter loop */
 
+    if (iter == maxit)
+    {
+      puts("maxit");
+      /* cleanup */
+      destroyVector(fy);
+      destroyVector(y);
+      destroyVector(fx0);
+      destroyVector(xk);
+      destroyVector(x0);
+      continue;
+    }
+
+    /* 5. leallasi feltetel ---------------------------------------------- */
+
+
+    VECTOR *fxk = calcSystem(activeSystem, xk);
+
+    if (infiniteNorm(fxk) < (epsilon * (1 + infiniteNorm(fx0))))
+    {
+      printf("siker ");
+      printVector(y);
+      printf("%lf %d\n", infiniteNorm(fxk), iter);
+    }
+
     /* cleanup */
+    destroyVector(fy);
+    destroyVector(y);
+    destroyVector(fx0);
     destroyVector(xk);
+    destroyVector(x0);
 
   } /* end task loop */
 
