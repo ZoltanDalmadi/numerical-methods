@@ -489,6 +489,31 @@ int main()
         }
       }
 
+      /* end PLU decomosition */
+
+      /* szingularitas ellenorzes */
+      if (singular)
+      {
+        printf("szingularis");
+        printVector(xk);
+
+        destroyVector(fxk);
+        destroyVector(P);
+        destroyMatrix(jacobixk);
+        continue;
+      }
+
+      if (fabs(jacobixk->_data[n - 1][n - 1]) < 1e-15)
+      {
+        printf("szingularis");
+        printVector(xk);
+
+        destroyVector(fxk);
+        destroyVector(P);
+        destroyMatrix(jacobixk);
+        continue;
+      }
+
       destroyVector(P);
       destroyVector(fxk);
       destroyMatrix(jacobixk);
