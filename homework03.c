@@ -121,6 +121,18 @@ void printVector(VECTOR *v)
     printf("%.8lf ", v->_data[i]);
 }
 
+VECTOR *copyVector(VECTOR *v)
+{
+  VECTOR *copy = createVector(v->_items);
+
+  int i;
+
+  for (i = 0; i < copy->_items; ++i)
+    copy->_data[i] = v->_data[i];
+
+  return copy;
+}
+
 double innerProduct(VECTOR *a, VECTOR *b)
 {
   double result = 0;
@@ -367,7 +379,7 @@ int main()
 {
   /* variables */
   int i, j, n, N, k, iter, task, maxit;
-  double epsilon, t;
+  double epsilon, t, temp;
   SYSTEM *activeSystem;
 
   /* construct equation systems */
@@ -489,7 +501,7 @@ int main()
         }
       }
 
-      /* end PLU decomosition */
+      /* end PLU decomposition */
 
       /* szingularitas ellenorzes */
       if (singular)
@@ -497,10 +509,10 @@ int main()
         printf("szingularis");
         printVector(xk);
 
-        destroyVector(fxk);
         destroyVector(P);
+        destroyVector(fxk);
         destroyMatrix(jacobixk);
-        continue;
+        break;
       }
 
       if (fabs(jacobixk->_data[n - 1][n - 1]) < 1e-15)
@@ -508,15 +520,52 @@ int main()
         printf("szingularis");
         printVector(xk);
 
-        destroyVector(fxk);
         destroyVector(P);
+        destroyVector(fxk);
         destroyMatrix(jacobixk);
-        continue;
+        break;
       }
 
+      /* f vektor permutalasa es -1-el szorzas */
+      VECTOR *deltax = copyVector(fxk);
+
+      for (i = 0; i < n; ++i)
+        deltax->_data[i] = -1 * fxk->_data[(int)P->_data[i]];
+
+      VECTOR *z = createVector(activeSystem->_items);
+
+      /* Lz = fxkp megoldasa (fxkp deltax-ben tarolva) */
+      for (i = 0; i < n; ++i)
+      {
+        temp = 0;
+
+        for (j = 0; j < i; ++j)
+          temp += jacobixk->_data[i][j] * fxk->_data[j];
+
+        z->_data[i] = deltax->_data[i] - temp;
+      }
+
+      /* U*deltax = z megoldasa (deltax fxkp-ben tarolva) */
+      for (i = n - 1; i >= 0; i--)
+      {
+        temp = 0;
+
+        for (j = i + 1; j < n; j++)
+          temp += jacobixk->_data[i][j] * deltax->_data[j];
+
+        deltax->_data[i] = (z->_data[i] - temp) / jacobixk->_data[i][i];
+      }
+
+      /* cleanup unneeded vectors / matrix */
+      destroyVector(z);
       destroyVector(P);
-      destroyVector(fxk);
       destroyMatrix(jacobixk);
+
+      /* 3. y vektor szamitasa --------------------------------------------- */
+
+
+      /* cleanup */
+      destroyVector(fxk);
 
     } /* end iter loop */
 
