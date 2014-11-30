@@ -366,7 +366,7 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 int main()
 {
   /* variables */
-  int i, n, N, k, task, maxit;
+  int i, j, n, N, k, iter, task, maxit;
   double epsilon, t;
   SYSTEM *activeSystem;
 
@@ -430,8 +430,8 @@ int main()
     for (i = 0; i < xk->_items; ++i)
       scanf("%lf", &xk->_data[i]);
 
-    /* start k loop */
-    for (k = 1; k < maxit; ++k)
+    /* start iter loop */
+    for (iter = 1; iter < maxit; ++iter)
     {
       /* 1. calculate jacobi matrix and f vector --------------------------- */
       MATRIX *jacobixk = activeSystem->_jacobi(xk);
@@ -439,12 +439,61 @@ int main()
 
       /* 2. solve jacobi * deltax = -f linear equation (PLU) --------------- */
 
+      /* P vektor */
+      VECTOR *P = createVector(n);
 
+      for (i = 0; i < n; ++i)
+        P->_data[i] = i;
 
+      int singular = 0;
+
+      /* start PLU decomposition of jacobi matrix */
+      for (k = 0; k < activeSystem->_items - 1; ++k)
+      {
+        /* legnagyobb abszolutertek kivalasztasa */
+        double max = jacobixk->_data[k][k];
+        int maxRow = k;
+
+        for (i = k + 1; i < n; ++i)
+        {
+          if (fabs(jacobixk->_data[i][k]) > fabs(max))
+          {
+            max = jacobixk->_data[i][k];
+            maxRow = i;
+          }
+        }
+
+        /* sorcsere legnagyobb aszolutertekure */
+        if (fabs(max) < 1e-15)
+        {
+          singular = 1;
+          break;
+        }
+        else if (maxRow != k)
+        {
+          swapMatrixRows(jacobixk, maxRow, k);
+          swapVectorItems(P, maxRow, k);
+        }
+
+        /* kinullazas */
+        for (i = k + 1; i < n; ++i)
+        {
+          jacobixk->_data[i][k] /= jacobixk->_data[k][k];
+
+          for (j = k + 1; j < n; ++j)
+          {
+            jacobixk->_data[i][j] =
+              jacobixk->_data[i][j] -
+              (jacobixk->_data[i][k] * jacobixk->_data[k][j]);
+          }
+        }
+      }
+
+      destroyVector(P);
       destroyVector(fxk);
       destroyMatrix(jacobixk);
 
-    } /* end k loop */
+    } /* end iter loop */
 
     /* cleanup */
     destroyVector(xk);
