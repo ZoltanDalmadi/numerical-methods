@@ -366,8 +366,8 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 int main()
 {
   /* variables */
-  int i, n, N, task, maxit;
-  double epsilon;
+  int i, n, N, k, task, maxit;
+  double epsilon, t;
   SYSTEM *activeSystem;
 
   /* construct equation systems */
@@ -425,15 +425,29 @@ int main()
     scanf("%lf", &epsilon);
 
     /* input starting vector x0 */
-    VECTOR *x0 = createVector(activeSystem->_items);
+    VECTOR *xk = createVector(activeSystem->_items);
 
-    for (i = 0; i < x0->_items; ++i)
-      scanf("%lf", &x0->_data[i]);
+    for (i = 0; i < xk->_items; ++i)
+      scanf("%lf", &xk->_data[i]);
 
-    /* 1. calculate jacobi matrix and f vector --------------------------- */
+    /* start k loop */
+    for (k = 1; k < maxit; ++k)
+    {
+      /* 1. calculate jacobi matrix and f vector --------------------------- */
+      MATRIX *jacobixk = activeSystem->_jacobi(xk);
+      VECTOR *fxk = calcSystem(activeSystem, xk);
+
+      /* 2. solve jacobi * deltax = -f linear equation (PLU) --------------- */
+
+
+
+      destroyVector(fxk);
+      destroyMatrix(jacobixk);
+
+    } /* end k loop */
 
     /* cleanup */
-    destroyVector(x0);
+    destroyVector(xk);
 
   } /* end task loop */
 
