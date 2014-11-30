@@ -305,7 +305,7 @@ MATRIX *sys3_jacobi(VECTOR *v)
   double x1 = v->_data[0];
   double x2 = v->_data[1];
 
-  result->_data[0][0] = -4 - sin(x1 - x2) * 2;
+  result->_data[0][0] = -4 - sin(2 * x1 - x2) * 2;
   result->_data[0][1] = sin(2 * x1 - x2);
   result->_data[1][0] = cos(x1);
   result->_data[1][1] = -3;
@@ -360,9 +360,14 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
   return result;
 }
 
+/* ----------------------------------------------------------------------------
+ * Main function
+ * ------------------------------------------------------------------------- */
 int main()
 {
-  int i, n;
+  /* variables */
+  int i, n, N, task, maxit;
+  double epsilon;
   SYSTEM *activeSystem;
 
   /* construct equation systems */
@@ -387,43 +392,52 @@ int main()
   system4->_data[1] = sys4_func2;
   system4->_jacobi = sys4_jacobi;
 
-  scanf("%d", &n);
+  /* input number of tasks to solve */
+  scanf("%d", &N);
 
-  switch (n)
+  /* task loop */
+  for (task = 0; task < N; ++task)
   {
-  case 1:
-    activeSystem = system1;
-    break;
+    /* determine actual equation system */
+    scanf("%d", &n);
 
-  case 2:
-    activeSystem = system2;
-    break;
+    switch (n)
+    {
+    case 1:
+      activeSystem = system1;
+      break;
 
-  case 3:
-    activeSystem = system3;
-    break;
+    case 2:
+      activeSystem = system2;
+      break;
 
-  case 4:
-    activeSystem = system4;
-    break;
-  }
+    case 3:
+      activeSystem = system3;
+      break;
 
-  VECTOR *vec = createVector(activeSystem->_items);
+    case 4:
+      activeSystem = system4;
+      break;
+    }
 
-  for (i = 0; i < activeSystem->_items; ++i)
-    scanf("%lf", &vec->_data[i]);
+    /* input maxit and epsilon */
+    scanf("%d", &maxit);
+    scanf("%lf", &epsilon);
 
-  VECTOR *res = calcSystem(activeSystem, vec);
-  MATRIX *resm = activeSystem->_jacobi(vec);
+    /* input starting vector x0 */
+    VECTOR *x0 = createVector(activeSystem->_items);
 
-  printVector(res);
-  printf("\n");
-  printMatrix(resm);
+    for (i = 0; i < x0->_items; ++i)
+      scanf("%lf", &x0->_data[i]);
+
+    /* 1. calculate jacobi matrix and f vector --------------------------- */
+
+    /* cleanup */
+    destroyVector(x0);
+
+  } /* end task loop */
 
   /* cleanup */
-  destroyMatrix(resm);
-  destroyVector(res);
-  destroyVector(vec);
   destroySystem(system4);
   destroySystem(system3);
   destroySystem(system2);
