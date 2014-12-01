@@ -60,28 +60,6 @@ MATRIX *copyMatrix(MATRIX *m)
   return copy;
 }
 
-void printMatrix(MATRIX *m)
-{
-  int i, j;
-
-  for (i = 0; i < m->_rows; ++i)
-  {
-    printf("|");
-
-    for (j = 0; j < m->_cols; ++j)
-    {
-      printf("%lf", m->_data[i][j]);
-
-      if (j == m->_cols - 1)
-        printf("|\n");
-      else
-        printf(" ");
-    }
-  }
-
-  printf("\n");
-}
-
 /* ----------------------------------------------------------------------------
  * VECTOR struct and functions
  * ------------------------------------------------------------------------- */
@@ -631,7 +609,6 @@ int main()
     }
 
     /* 5. leallasi feltetel ---------------------------------------------- */
-
 
     VECTOR *fxk = calcSystem(activeSystem, xk);
 
