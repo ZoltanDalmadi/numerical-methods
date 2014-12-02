@@ -372,7 +372,7 @@ int main()
     double fx0norm = infiniteNorm(fx0);
 
     /* start iter loop */
-    for (iter = 1; iter < maxit; ++iter)
+    for (iter = 0; iter < maxit; ++iter)
     {
       /* 1. calculate jacobi matrix and f vector --------------------------- */
       MATRIX *jacobixk = activeSystem->_jacobi(xk);
@@ -550,7 +550,7 @@ int main()
       {
         printf("siker ");
         printVector(xk);
-        printf("%.8lf %d\n", fxknorm, iter);
+        printf("%.8lf %d\n", fxknorm, iter + 1);
 
         /* cleanup */
         destroyVector(fxk);
