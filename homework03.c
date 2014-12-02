@@ -45,43 +45,6 @@ void swapMatrixRows(MATRIX *m, int a, int b)
   m->_data[b] = temp;
 }
 
-MATRIX *copyMatrix(MATRIX *m)
-{
-  MATRIX *copy = createMatrix(m->_rows, m->_cols);
-
-  int i, j;
-
-  for (i = 0; i < copy->_rows; ++i)
-  {
-    for (j = 0; j < copy->_cols; ++j)
-      copy->_data[i][j] = m->_data[i][j];
-  }
-
-  return copy;
-}
-
-void printMatrix(MATRIX *m)
-{
-  int i, j;
-
-  for (i = 0; i < m->_rows; ++i)
-  {
-    printf("|");
-
-    for (j = 0; j < m->_cols; ++j)
-    {
-      printf("%lf", m->_data[i][j]);
-
-      if (j == m->_cols - 1)
-        printf("|\n");
-      else
-        printf(" ");
-    }
-  }
-
-  printf("\n");
-}
-
 /* ----------------------------------------------------------------------------
  * VECTOR struct and functions
  * ------------------------------------------------------------------------- */
@@ -119,48 +82,6 @@ void printVector(VECTOR *v)
 
   for (i = 0; i < v->_items; ++i)
     printf("%.8lf ", v->_data[i]);
-}
-
-VECTOR *copyVector(VECTOR *v)
-{
-  VECTOR *copy = createVector(v->_items);
-
-  int i;
-
-  for (i = 0; i < copy->_items; ++i)
-    copy->_data[i] = v->_data[i];
-
-  return copy;
-}
-
-double innerProduct(VECTOR *a, VECTOR *b)
-{
-  double result = 0;
-  int i;
-
-  for (i = 0; i < a->_items; ++i)
-  {
-    result += a->_data[i] * b->_data[i];
-  }
-
-  return result;
-}
-
-VECTOR *multiplyMatrixVector(MATRIX *A, VECTOR *B)
-{
-  VECTOR *result = createVector(A->_rows);
-
-  int i, j;
-
-  for (i = 0; i < A->_rows; ++i)
-  {
-    result->_data[i] = 0;
-
-    for (j = 0; j < A->_cols; ++j)
-      result->_data[i] += A->_data[i][j] * B->_data[j];
-  }
-
-  return result;
 }
 
 double infiniteNorm(VECTOR *v)
@@ -349,7 +270,7 @@ MATRIX *sys4_jacobi(VECTOR *v)
   double x1 = v->_data[0];
   double x2 = v->_data[1];
 
-  result->_data[0][0] = (x2 * x2) - 4 * (x2 + 1);
+  result->_data[0][0] = (x2 * x2) - 4 * (x2 - 1);
   result->_data[0][1] = 2 * x1 * (x2 - 2);
   result->_data[1][0] = exp(x1 - 1);
   result->_data[1][1] = -1;
@@ -378,7 +299,7 @@ VECTOR *calcSystem(SYSTEM *s, VECTOR *v)
 int main()
 {
   /* variables */
-  int i, j, ttry, n, N, k, iter, task, ttoosmall, maxit;
+  int i, j, ttry, n, N, k, iter, task, tasknum, ttoosmall, maxit;
   double epsilon, t, temp;
   SYSTEM *activeSystem;
 
@@ -411,9 +332,9 @@ int main()
   for (task = 0; task < N; ++task)
   {
     /* determine actual equation system */
-    scanf("%d", &n);
+    scanf("%d", &tasknum);
 
-    switch (n)
+    switch (tasknum)
     {
     case 1:
       activeSystem = system1;
@@ -437,30 +358,30 @@ int main()
     scanf("%lf", &epsilon);
 
     /* input starting vector x0 */
-    VECTOR *x0 = createVector(activeSystem->_items);
+    VECTOR *xk = createVector(activeSystem->_items);
 
-    for (i = 0; i < x0->_items; ++i)
-      scanf("%lf", &x0->_data[i]);
+    for (i = 0; i < xk->_items; ++i)
+      scanf("%lf", &xk->_data[i]);
 
-    VECTOR *fx0 = calcSystem(activeSystem, x0);
-
-    VECTOR *xk = copyVector(x0);
+    VECTOR *fx0 = calcSystem(activeSystem, xk);
 
     t = 1.0;
 
-    /* start iter loop */
-    VECTOR *y = createVector(activeSystem->_items);
-    VECTOR *fy;
+    n = activeSystem->_items;
 
+    double fx0norm = infiniteNorm(fx0);
+
+    /* start iter loop */
     for (iter = 1; iter < maxit; ++iter)
     {
       /* 1. calculate jacobi matrix and f vector --------------------------- */
       MATRIX *jacobixk = activeSystem->_jacobi(xk);
       VECTOR *fxk = calcSystem(activeSystem, xk);
+      double fxknorm = infiniteNorm(fxk);
 
       /* 2. solve jacobi * deltax = -f linear equation (PLU) --------------- */
 
-      /* P vektor */
+      /* P vector */
       VECTOR *P = createVector(n);
 
       for (i = 0; i < n; ++i)
@@ -469,9 +390,8 @@ int main()
       int singular = 0;
 
       /* start PLU decomposition of jacobi matrix */
-      for (k = 0; k < activeSystem->_items - 1; ++k)
+      for (k = 0; k < n - 1; ++k)
       {
-        /* legnagyobb abszolutertek kivalasztasa */
         double max = jacobixk->_data[k][k];
         int maxRow = k;
 
@@ -484,7 +404,6 @@ int main()
           }
         }
 
-        /* sorcsere legnagyobb aszolutertekure */
         if (fabs(max) < 1e-15)
         {
           singular = 1;
@@ -496,7 +415,6 @@ int main()
           swapVectorItems(P, maxRow, k);
         }
 
-        /* kinullazas */
         for (i = k + 1; i < n; ++i)
         {
           jacobixk->_data[i][k] /= jacobixk->_data[k][k];
@@ -512,11 +430,11 @@ int main()
 
       /* end PLU decomposition */
 
-      /* szingularitas ellenorzes */
       if (singular)
       {
-        printf("szingularis");
+        printf("szingularis ");
         printVector(xk);
+        printf("\n");
 
         destroyVector(P);
         destroyVector(fxk);
@@ -526,8 +444,9 @@ int main()
 
       if (fabs(jacobixk->_data[n - 1][n - 1]) < 1e-15)
       {
-        printf("szingularis");
+        printf("szingularis ");
         printVector(xk);
+        printf("\n");
 
         destroyVector(P);
         destroyVector(fxk);
@@ -536,25 +455,21 @@ int main()
       }
 
       /* f vektor permutalasa es -1-el szorzas */
-      VECTOR *deltax = copyVector(fxk);
+      VECTOR *deltax = createVector(n);
 
       for (i = 0; i < n; ++i)
         deltax->_data[i] = -1 * fxk->_data[(int)P->_data[i]];
 
-      VECTOR *z = createVector(activeSystem->_items);
-
-      /* Lz = fxkp megoldasa (fxkp deltax-ben tarolva) */
       for (i = 0; i < n; ++i)
       {
         temp = 0;
 
         for (j = 0; j < i; ++j)
-          temp += jacobixk->_data[i][j] * fxk->_data[j];
+          temp += jacobixk->_data[i][j] * deltax->_data[j];
 
-        z->_data[i] = deltax->_data[i] - temp;
+        deltax->_data[i] = deltax->_data[i] - temp;
       }
 
-      /* U*deltax = z megoldasa (deltax fxkp-ben tarolva) */
       for (i = n - 1; i >= 0; i--)
       {
         temp = 0;
@@ -562,92 +477,106 @@ int main()
         for (j = i + 1; j < n; j++)
           temp += jacobixk->_data[i][j] * deltax->_data[j];
 
-        deltax->_data[i] = (z->_data[i] - temp) / jacobixk->_data[i][i];
+        deltax->_data[i] = (deltax->_data[i] - temp) / jacobixk->_data[i][i];
       }
 
       /* cleanup unneeded vectors / matrix */
-      destroyVector(z);
       destroyVector(P);
       destroyMatrix(jacobixk);
+
+      ttoosmall = 0;
 
       /* 3. y vektor szamitasa --------------------------------------------- */
       for (ttry = 0; ttry < 8; ++ttry)
       {
+        VECTOR *y = createVector(n);
+
         /* y = xk + t * deltax */
         for (i = 0; i < y->_items; ++i)
-          y->_data[i] = xk->_data[i] + t * deltax->_data[i];
+          y->_data[i] = xk->_data[i] + (t * deltax->_data[i]);
 
-        fy = calcSystem(activeSystem, y);
+        VECTOR *fy = calcSystem(activeSystem, y);
 
-        if (infiniteNorm(fy) < infiniteNorm(fxk))
+        double infnormfy = infiniteNorm(fy);
+
+        if (infnormfy < fxknorm)
         {
-          destroyVector(xk);
-          xk = y;
+          for (i = 0; i < n; ++i)
+            xk->_data[i] = y->_data[i];
 
-          if (ttry == 0)
-          {
-            t = min(1.5 * t, 1.0);
-            destroyVector(fy);
-            continue;
-          }
+          fxknorm = infnormfy;
 
           destroyVector(fy);
+          destroyVector(y);
           break;
         }
-        else
-        {
-          t /= 2;
 
-          if (t <= 1e-3)
-          {
-            ttoosmall = 1;
-            destroyVector(fy);
-            break;
-          }
+        t /= 2;
+
+        if (t <= 1e-3)
+        {
+          ttoosmall = 1;
+          destroyVector(fy);
+          destroyVector(y);
+          break;
         }
+
+        destroyVector(fy);
+        destroyVector(y);
+
       } /* end loop ttry */
+
+      if (ttry == 0)
+        t = min(1.5 * t, 1.0);
 
       if (ttry == 8 || ttoosmall)
       {
         printf("sikertelen ");
-        printVector(y);
+        printVector(xk);
+        printf("\n");
+        destroyVector(fxk);
+        destroyVector(deltax);
+        break;
       }
 
       /* cleanup */
       destroyVector(fxk);
+
+      /* 5. leallasi feltetel ---------------------------------------------- */
+
+      fxk = calcSystem(activeSystem, xk);
+
+      if (fxknorm < epsilon * (1 + fx0norm))
+      {
+        printf("siker ");
+        printVector(xk);
+        printf("%.8lf %d\n", fxknorm, iter);
+
+        /* cleanup */
+        destroyVector(fxk);
+        destroyVector(deltax);
+        break;
+      }
+
+      /* cleanup */
+      destroyVector(fxk);
+      destroyVector(deltax);
 
     } /* end iter loop */
 
     if (iter == maxit)
     {
       puts("maxit");
+
       /* cleanup */
-      destroyVector(fy);
-      destroyVector(y);
       destroyVector(fx0);
       destroyVector(xk);
-      destroyVector(x0);
       continue;
     }
 
-    /* 5. leallasi feltetel ---------------------------------------------- */
-
-
-    VECTOR *fxk = calcSystem(activeSystem, xk);
-
-    if (infiniteNorm(fxk) < (epsilon * (1 + infiniteNorm(fx0))))
-    {
-      printf("siker ");
-      printVector(y);
-      printf("%lf %d\n", infiniteNorm(fxk), iter);
-    }
-
     /* cleanup */
-    destroyVector(fy);
-    destroyVector(y);
     destroyVector(fx0);
     destroyVector(xk);
-    destroyVector(x0);
 
   } /* end task loop */
 
